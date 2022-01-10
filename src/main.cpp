@@ -20,6 +20,39 @@ SERVER ISSUES:
   - USB2RS485 Adapter no external VCC! -> kills/resets USB from Notebook!
 
 
+
+MODBUS Basics:
+**************
+
+https://ipc2u.de/artikel/wissenswertes/modbus-rtu-einfach-gemacht-mit-detaillierten-beschreibungen-und-beispielen/
+
+REGISTERNUMMER	REGISTERADRESSE HEX	    TYP	                  NAME	                   TYP
+1-9999	        0000 to 270E	      lesen-schreiben	  Discrete Output Coils	            DO
+10001-19999	    0000 to 270E	      lesen	            Discrete Input Contacts	          DI
+30001-39999	    0000 to 270E	      lesen	            Analog Input Registers	          AI
+40001-49999	    0000 to 270E	      lesen-schreiben	  Analog Output Holding Registers	  AO
+
+FUNKTIONSKODE	                FUNKTION   	                                                    WERTTYP	  ZUGRIFFSTYP
+01 (0x01)	      Liest DO	                  Read Discrete Output Coil	                        Diskret	    Lesen
+02 (0x02)	      Liest DI	                  Read Discrete Input Contact	                      Diskret	    Lesen
+03 (0x03)	      Liest AO	                  Read Analog Output Holding Register	              16 Bit	    Lesen
+04 (0x04)	      Liest AI	                  Read Analog Input Register	                      16 Bit	    Lesen
+05 (0x05)	      Schreibt ein DO	            Setzen einer Discrete Output Coil	                Diskret	    Schreiben
+06 (0x06)	      Schreibt ein AO	            Setzen eines Analog Output Holding Registers	    16 Bit	    Schreiben
+15 (0x0F)	      Aufzeichnung mehrerer DOs	  Setzen mehrerer Discrete Output Coil	            Diskret	    Schreiben
+16 (0x10)	      Aufzeichnung mehrerer AOs	  Setzen mehrerer Analog Output Holding Registers	  16 Bit	    Schreiben
+
+####################################################################
+#   The maximum packet sizes are:                                  #
+#        Read registers (function codes 03 & 04)   = 125 registers #
+#        Write registers (function code 16)        = 123 registers #
+#        Read Booleans (function codes 01 & 02)    = 2000 bits     #
+#        Write Booleans (function code 15)         = 1968 bits     #
+####################################################################
+
+Modbus Client == Master
+Modbus Server == Slave
+
 */
 #include <Arduino.h>
 #include <M5Stack.h>
@@ -92,15 +125,15 @@ void handleData(ModbusMessage response, uint32_t token)
   // according to the length of the server data, change the number of values directly
   if (ID == SERVER1_ID)
   {
-    // getValues(response, Server1_values, SERVER1_NUM_VALUES);
+    getValues(response, Server1_values, SERVER1_NUM_VALUES);
   }
   else if (ID == SERVER2_ID)
   {
-    // getValues(response, Server2_values, SERVER2_NUM_VALUES);
+    getValues(response, Server2_values, SERVER2_NUM_VALUES);
   }
   else if (ID == SERVER3_ID) // XY-MD02 sensor is broken, so skip this..
   {
-    getValues(response, Server3_values, SERVER3_NUM_VALUES);
+    // getValues(response, Server3_values, SERVER3_NUM_VALUES);
   }
 }
 
@@ -161,26 +194,26 @@ void loop()
     MB_Requests++;
 
     // Issue the request
-    // Error err = MB.addRequest(SERVER1_TOKEN, SERVER1_ID, READ_INPUT_REGISTER, SERVER1_INPUT_REGISTER, SERVER1_NUM_VALUES);
-    // if (err != SUCCESS)
-    // {
-    //   ModbusError e(err);
-    //   LOG_E("Error creating request: %02X - %s\n", (int)e, (const char *)e);
-    // }
-
-    // Error err2 = MB.addRequest(SERVER2_TOKEN, SERVER2_ID, READ_HOLD_REGISTER, SERVER2_HOLD_REGISTER, SERVER2_NUM_VALUES);
-    // if (err2 != SUCCESS)
-    // {
-    //   ModbusError e(err2);
-    //   LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
-    // }
-
-    Error err3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
-    if (err3 != SUCCESS)
+    Error err = MB.addRequest(SERVER1_TOKEN, SERVER1_ID, READ_INPUT_REGISTER, SERVER1_INPUT_REGISTER, SERVER1_NUM_VALUES);
+    if (err != SUCCESS)
     {
-      ModbusError e(err3);
-      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+      ModbusError e(err);
+      LOG_E("Error creating request: %02X - %s\n", (int)e, (const char *)e);
     }
+
+    Error err2 = MB.addRequest(SERVER2_TOKEN, SERVER2_ID, READ_HOLD_REGISTER, SERVER2_HOLD_REGISTER, SERVER2_NUM_VALUES);
+    if (err2 != SUCCESS)
+    {
+      ModbusError e(err2);
+      LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
+    }
+
+    // Error err3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
+    // if (err3 != SUCCESS)
+    // {
+    //   ModbusError e(err3);
+    //   LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    // }
   }
 
   static uint32_t print_values = millis();
