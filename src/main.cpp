@@ -77,8 +77,8 @@ Modbus Server == Slave
 // Test Server USB2RS485 with pyModSlave running in Windows (https://sourceforge.net/projects/pymodslave/)
 #define SERVER1_ID 28
 #define SERVER1_TOKEN 28              // only for Test same # as ID
-#define SERVER1_INPUT_REGISTER 0x0000 //
-#define SERVER1_NUM_VALUES 50
+#define SERVER1_INPUT_REGISTER 0x0001 // statt 0x0000
+#define SERVER1_NUM_VALUES 8
 
 // Test Server M5Atom with RS485 Module
 #define SERVER2_ID 27
@@ -135,15 +135,15 @@ void handleData(ModbusMessage response, uint32_t token)
     getValues(response, Server1_values, SERVER1_NUM_VALUES);
     request_time1 = millis() - token;
   }
-  else if (ID == SERVER2_ID && BUTTON2)
+  /*else*/ if (ID == SERVER2_ID && BUTTON2)
   {
     getValues(response, Server2_values, SERVER2_NUM_VALUES);
-    request_time2 = millis() - token -request_time1;
+    request_time2 = millis() - token - request_time1;
   }
-  else if (ID == SERVER3_ID && BUTTON3) // XY-MD02 sensor
+  /*else*/ if (ID == SERVER3_ID && BUTTON3) // XY-MD02 sensor
   {
     getValues(response, Server3_values, SERVER3_NUM_VALUES);
-    request_time3 = millis() - token -request_time2;
+    request_time3 = millis() - token - request_time2;
   }
 }
 
@@ -153,7 +153,8 @@ void handleError(Error error, uint32_t token)
 {
   // ModbusError wraps the error code and provides a readable error message for it
   ModbusError me(error);
-  LOG_E("Error: %02X - %s ServerID:n/a Time: %8.3fs\n", (int)me, (const char *)me, (millis()-token)/1000.0);
+  // LOG_E("Error: %02X - %s ServerID:n/a Time: %8.3fs\n", (int)me, (const char *)me, (millis() - token) / 1000.0);
+  LOG_E("Error: %02X - %s ServerID:%i \n", (int)me, (const char *)me, token);
   MB_Errors++;
 }
 
@@ -203,21 +204,24 @@ void loop()
     BUTTON1 = !BUTTON1;
     M5.Lcd.setCursor(10, 200);
     M5.Lcd.printf("Slave1=%i", BUTTON1);
-    if (!BUTTON1) request_time1=0;
+    if (!BUTTON1)
+      request_time1 = 0;
   }
   if (M5.BtnB.isPressed())
   {
     BUTTON2 = !BUTTON2;
     M5.Lcd.setCursor(120, 200);
     M5.Lcd.printf("Slave2=%i", BUTTON2);
-    if (!BUTTON2) request_time2=0;
+    if (!BUTTON2)
+      request_time2 = 0;
   }
   if (M5.BtnC.isPressed())
   {
     BUTTON3 = !BUTTON3;
     M5.Lcd.setCursor(220, 200);
     M5.Lcd.printf("Slave3=%i", BUTTON3);
-    if (!BUTTON3) request_time3=0;
+    if (!BUTTON3)
+      request_time3 = 0;
   }
 
   static uint32_t next_request = millis();
@@ -232,7 +236,8 @@ void loop()
     // Issue the request
     if (BUTTON1)
     {
-      Error err = MB.addRequest(millis(), SERVER1_ID, READ_INPUT_REGISTER, SERVER1_INPUT_REGISTER, SERVER1_NUM_VALUES);
+      // Error err = MB.addRequest(millis(), SERVER1_ID, READ_INPUT_REGISTER, SERVER1_INPUT_REGISTER, SERVER1_NUM_VALUES);
+      Error err = MB.addRequest(SERVER1_TOKEN, SERVER1_ID, READ_INPUT_REGISTER, SERVER1_INPUT_REGISTER, SERVER1_NUM_VALUES);
       if (err != SUCCESS)
       {
         ModbusError e(err);
@@ -241,7 +246,8 @@ void loop()
     }
     if (BUTTON2)
     {
-      Error err2 = MB.addRequest(millis(), SERVER2_ID, READ_HOLD_REGISTER, SERVER2_HOLD_REGISTER, SERVER2_NUM_VALUES);
+      // Error err2 = MB.addRequest(millis(), SERVER2_ID, READ_HOLD_REGISTER, SERVER2_HOLD_REGISTER, SERVER2_NUM_VALUES);
+      Error err2 = MB.addRequest(SERVER2_TOKEN, SERVER2_ID, READ_HOLD_REGISTER, SERVER2_HOLD_REGISTER, SERVER2_NUM_VALUES);
       if (err2 != SUCCESS)
       {
         ModbusError e(err2);
@@ -250,7 +256,8 @@ void loop()
     }
     if (BUTTON3)
     {
-      Error err3 = MB.addRequest(millis(), SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
+      // Error err3 = MB.addRequest(millis(), SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
+      Error err3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
       if (err3 != SUCCESS)
       {
         ModbusError e(err3);
@@ -260,12 +267,17 @@ void loop()
 
     // if data is ready
     Serial.printf("                 Requests %i / Errors %i\n", MB_Requests, MB_Errors);
+    M5.Lcd.setCursor(10, 50);
+    M5.Lcd.printf("Requests %i / Errors %i\n", MB_Requests, MB_Errors);
     if (BUTTON1)
     {
-      Serial.printf("\nRequested from Server %2i  Time: %8.3fs\n", SERVER1_ID, request_time1 / 1000.0);
+      Serial.printf("\nRequested from Server1 @ID %2i\n", SERVER1_ID);
       M5.Lcd.setCursor(1, 80);
-      M5.Lcd.printf("Server:%2i  Time:%8.3fs\n", SERVER1_ID, request_time1 / 1000.0);
-      for (uint8_t i = 0; i < 8 /*SERVER1_NUM_VALUES*/; ++i) // DEBUG SHOW ONLY 8 of 50!
+      M5.Lcd.printf("Server1 @ID %2i\n", SERVER1_ID);
+      // Serial.printf("\nRequested from Server1 @ID%2i  Time: %8.3fs\n", SERVER1_ID, request_time1 / 1000.0);
+      // M5.Lcd.setCursor(1, 80);
+      // M5.Lcd.printf("Server1@ID%2i  Time:%8.3fs\n", SERVER1_ID, request_time1 / 1000.0);
+      for (uint8_t i = 0; i < SERVER1_NUM_VALUES; ++i) // DEBUG SHOW ONLY 8 of 50!
       {
         if (((i + 1) % 4) == 0) // format print output to 4 collumns @ xx rows
           Serial.printf("    %04X: %8i\n", i, Server1_values[i]);
@@ -275,9 +287,12 @@ void loop()
     }
     if (BUTTON2)
     {
-      Serial.printf("\nRequested from Server %2i  Time: %8.3fs\n", SERVER2_ID, request_time2 / 1000.0);
+      Serial.printf("\nRequested from Server2 @ID %2i\n", SERVER2_ID);
       M5.Lcd.setCursor(1, 100);
-      M5.Lcd.printf("Server:%2i  Time:%8.3fs\n", SERVER2_ID, request_time2 / 1000.0);
+      M5.Lcd.printf("Server2 @ID %2i\n", SERVER2_ID);
+      // Serial.printf("\nRequested from Server2@ID%2i  Time: %8.3fs\n", SERVER2_ID, request_time2 / 1000.0);
+      // M5.Lcd.setCursor(1, 100);
+      // M5.Lcd.printf("Server2@ID%2i  Time:%8.3fs\n", SERVER2_ID, request_time2 / 1000.0);
       for (uint8_t i = 0; i < SERVER2_NUM_VALUES; ++i)
       {
         if (((i + 1) % 4) == 0) // format print output to 4 collumns @ xx rows
@@ -288,9 +303,12 @@ void loop()
     }
     if (BUTTON3)
     {
-      Serial.printf("Requested from Server %2i  Time: %8.3fs\n", SERVER3_ID, request_time3 / 1000.0);
+      Serial.printf("Requested from Server3 @ID %2i\n", SERVER3_ID);
       M5.Lcd.setCursor(1, 120);
-      M5.Lcd.printf("Server:%2i  Time:%8.3fs\n", SERVER3_ID, request_time3 / 1000.0);
+      M5.Lcd.printf("Server3@ ID %2i\n", SERVER3_ID);
+      // Serial.printf("\nRequested from Server3@ID%2i  Time: %8.3fs\n", SERVER3_ID, request_time3 / 1000.0);
+      // M5.Lcd.setCursor(1, 100);
+      // M5.Lcd.printf("Server3@ID%2i  Time:%8.3fs\n", SERVER3_ID, request_time3 / 1000.0);
       for (uint8_t i = 0; i < SERVER3_NUM_VALUES; ++i)
       {
         Serial.printf("    %04X: %f\n", i, Server3_values[i] / 10.0);
