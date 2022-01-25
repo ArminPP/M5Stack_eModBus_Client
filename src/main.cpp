@@ -3,9 +3,9 @@
 Test eModBus Client based on the RTU04example file
 Copyright 2020 by Michael Harwerth, Bert Melis and the contributors to ModbusClient
 
-Armin Pressler 2022
+customized by Armin Pressler 2022
 
-The client handles 3 servers (USB2RS485, M5Atom, XY-MD02)
+The client handles 6 servers (1x Arduino + RS485, 3x M5Atom + RS 485, 2x XY-MD02)
 
 IMPORTANT:
   - If one server on the bus is down and still electrically connected
@@ -16,8 +16,31 @@ IMPORTANT:
 SERVER ISSUES:
   - Atom-Base RS485 has no 120 Ohm burden resistor! (R4 n/c ??)
   - M5Stack W5500 burden resistor unknown?!
-  - XY-MD02 needs >5 VDC USB from M5Stack delivers only ~ 4.6V
+  - XY-MD02 needs >5 VDC, USB from M5Stack delivers only ~ 4.6V but is still OK!
   - USB2RS485 Adapter no external VCC! -> kills/resets USB from Notebook!
+
+XY-MD02 ISSUE:
+  - After a few days (+10!) I figured out, that this device is not working well,
+    if there are not done some fixes in the software.
+    This device needs some 'resting' time *before* and *after* the request command!
+    Maybe there is an issue with the timing of the RS485 adapter, I don't know,
+    but this was very annoying!
+    If there is a delay of 1000ms before/after the request, then there is no error anymore,
+    if the requests are fired immediately, then there will be 50% errors with timeout.
+    And the whole bus is also disturbed from time to time - with some errors on all devices ...
+
+    The solution is a deleyed state machine, wich ensures that the timing is OK.
+
+
+CONCLUSION:
+                    ID      25          26          27          1             3               42
+                DEVICE    M5Atom1     M5Atom2     M5Atom3    XY-MD02-1     XY-MD02-2     Arduino-Nano  
+DELAY_AFTER_STATE [ms]      50          50          1000       1000          1000             50              No errors!
+DELAY_AFTER_STATE [ms]      50          50           50         50            50              50              50% timeout errors (ID1+3)!
+DELAY_AFTER_STATE [ms]      1            1            1          x             x               1              No errors (ID1+3 are excluded)!
+
+if the number of received Words was increased (eg 3x12 Words --> 3x80 Words at ID25-27):
+DELAY_AFTER_STATE [ms]      50          50          1000       1000          1000             50              some errors, most ID1+3, some ID42
 
 
 
@@ -73,12 +96,12 @@ Modbus Server == Slave
 
 const uint32_t STATE_MACHINE_INTERVAL = 5000; // must be equal or larger than the sum of all delays!
 
-const uint32_t DELAY_AFTER_STATE_1 = 50; // Arduino Nano and 5V RS485 Shield
-const uint32_t DELAY_AFTER_STATE_2 = 1000; // M5Atom with RS485 Module
-const uint32_t DELAY_AFTER_STATE_3 = 1000; // XY-MD02 cheap chinese temperature sensor
-const uint32_t DELAY_AFTER_STATE_4 = 1000; // XY-MD02 cheap chinese temperature sensor
-const uint32_t DELAY_AFTER_STATE_5 = 50; // M5Atom with RS485 Module
-const uint32_t DELAY_AFTER_STATE_6 = 50; // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_1 = 1;   // Arduino Nano and 5V RS485 Shield
+const uint32_t DELAY_AFTER_STATE_2 = 1; // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_3 = 1; // XY-MD02 cheap chinese temperature sensor
+const uint32_t DELAY_AFTER_STATE_4 = 1; // XY-MD02 cheap chinese temperature sensor
+const uint32_t DELAY_AFTER_STATE_5 = 1;   // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_6 = 1;   // M5Atom with RS485 Module
 
 enum STATES // different tasks in the state machine
 {
@@ -112,7 +135,7 @@ unsigned long STATE_MACHINE_END = 0;   // to calculate the difference to STATE_M
 #define SERVER2_ID 27
 #define SERVER2_TOKEN 27             // only for Test same # as ID
 #define SERVER2_HOLD_REGISTER 0x012C // =300d
-#define SERVER2_NUM_VALUES 8
+#define SERVER2_NUM_VALUES 80
 
 // XY-MD02 cheap chinese temperature sensor (https://www.aliexpress.com/i/1005001475675808.html)
 #define SERVER3_ID 1
@@ -130,13 +153,13 @@ unsigned long STATE_MACHINE_END = 0;   // to calculate the difference to STATE_M
 #define SERVER5_ID 26
 #define SERVER5_TOKEN 26             // only for Test same # as ID
 #define SERVER5_HOLD_REGISTER 0x012C // =300d
-#define SERVER5_NUM_VALUES 8
+#define SERVER5_NUM_VALUES 80
 
 // Server M5Atom with RS485 Module
 #define SERVER6_ID 25
 #define SERVER6_TOKEN 25             // only for Test same # as ID
 #define SERVER6_HOLD_REGISTER 0x012C // =300d
-#define SERVER6_NUM_VALUES 8
+#define SERVER6_NUM_VALUES 80
 
 // received data from the servers
 uint16_t Server1_values[SERVER1_NUM_VALUES];
@@ -423,13 +446,13 @@ void NonBlockingStateMachine()
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_3, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
 
-    MB_Requests++; // TEST DEBUG
-    MB_ERROR3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
-    if (MB_ERROR3 != SUCCESS)
-    {
-      ModbusError e(MB_ERROR3);
-      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
-    }
+    // MB_Requests++; // TEST DEBUG
+    // MB_ERROR3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
+    // if (MB_ERROR3 != SUCCESS)
+    // {
+    //   ModbusError e(MB_ERROR3);
+    //   LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    // }
 
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_3;
     STATE_NR++;
@@ -439,13 +462,13 @@ void NonBlockingStateMachine()
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_4, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
 
-    MB_Requests++; // TEST DEBUG
-    MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
-    if (MB_ERROR4 != SUCCESS)
-    {
-      ModbusError e(MB_ERROR4);
-      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
-    }
+    // MB_Requests++; // TEST DEBUG
+    // MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
+    // if (MB_ERROR4 != SUCCESS)
+    // {
+    //   ModbusError e(MB_ERROR4);
+    //   LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    // }
 
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_4;
     STATE_NR++;
