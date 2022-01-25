@@ -34,7 +34,7 @@ XY-MD02 ISSUE:
 
 CONCLUSION:
                     ID      25          26          27          1             3               42
-                DEVICE    M5Atom1     M5Atom2     M5Atom3    XY-MD02-1     XY-MD02-2     Arduino-Nano  
+                DEVICE    M5Atom1     M5Atom2     M5Atom3    XY-MD02-1     XY-MD02-2     Arduino-Nano
 DELAY_AFTER_STATE [ms]      50          50          1000       1000          1000             50              No errors!
 DELAY_AFTER_STATE [ms]      50          50           50         50            50              50              50% timeout errors (ID1+3)!
 DELAY_AFTER_STATE [ms]      1            1            1          x             x               1              No errors (ID1+3 are excluded)!
@@ -96,12 +96,12 @@ Modbus Server == Slave
 
 const uint32_t STATE_MACHINE_INTERVAL = 5000; // must be equal or larger than the sum of all delays!
 
-const uint32_t DELAY_AFTER_STATE_1 = 1;   // Arduino Nano and 5V RS485 Shield
-const uint32_t DELAY_AFTER_STATE_2 = 1; // M5Atom with RS485 Module
-const uint32_t DELAY_AFTER_STATE_3 = 1; // XY-MD02 cheap chinese temperature sensor
-const uint32_t DELAY_AFTER_STATE_4 = 1; // XY-MD02 cheap chinese temperature sensor
-const uint32_t DELAY_AFTER_STATE_5 = 1;   // M5Atom with RS485 Module
-const uint32_t DELAY_AFTER_STATE_6 = 1;   // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_1 = 50;   // Arduino Nano and 5V RS485 Shield
+const uint32_t DELAY_AFTER_STATE_2 = 1000; // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_3 = 1000; // XY-MD02 cheap chinese temperature sensor
+const uint32_t DELAY_AFTER_STATE_4 = 1000; // XY-MD02 cheap chinese temperature sensor
+const uint32_t DELAY_AFTER_STATE_5 = 50;   // M5Atom with RS485 Module
+const uint32_t DELAY_AFTER_STATE_6 = 50;   // M5Atom with RS485 Module
 
 enum STATES // different tasks in the state machine
 {
@@ -361,7 +361,7 @@ void NonBlockingStateMachine()
 
                                            STATE MACHINE DIAGRAM
 
-                  Task 1           Task 2             Task 3           Task 4
+                  Task 1           Task 2             Task 3           Task n
                  +-----+       +-----------+        +--------+       +-------+
                  |     |       |           |        |        |       |       |
                  |     |       |           |        |        |       |       |
@@ -446,13 +446,13 @@ void NonBlockingStateMachine()
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_3, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
 
-    // MB_Requests++; // TEST DEBUG
-    // MB_ERROR3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
-    // if (MB_ERROR3 != SUCCESS)
-    // {
-    //   ModbusError e(MB_ERROR3);
-    //   LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
-    // }
+    MB_Requests++; // TEST DEBUG
+    MB_ERROR3 = MB.addRequest(SERVER3_TOKEN, SERVER3_ID, READ_INPUT_REGISTER, SERVER3_INPUT_REGISTER, SERVER3_NUM_VALUES);
+    if (MB_ERROR3 != SUCCESS)
+    {
+      ModbusError e(MB_ERROR3);
+      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    }
 
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_3;
     STATE_NR++;
@@ -462,13 +462,13 @@ void NonBlockingStateMachine()
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_4, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
 
-    // MB_Requests++; // TEST DEBUG
-    // MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
-    // if (MB_ERROR4 != SUCCESS)
-    // {
-    //   ModbusError e(MB_ERROR4);
-    //   LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
-    // }
+    MB_Requests++; // TEST DEBUG
+    MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
+    if (MB_ERROR4 != SUCCESS)
+    {
+      ModbusError e(MB_ERROR4);
+      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    }
 
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_4;
     STATE_NR++;
