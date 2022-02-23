@@ -80,17 +80,6 @@ Modbus Server == Slave
 #include <Arduino.h>
 #include <M5Stack.h>
 
-#include <Ethernet.h>
-#define SCK 18
-#define MISO 19
-#define MOSI 23
-#define CS 26
-#include <aWOT.h>
-
-EthernetServer server(80);
-byte mac[] = {0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xE1}; // TODO use internal MAC !!!
-Application app;
-
 // DEBUG                                                                               .
 // ERROR  If using chrono then there is a 'false' definition of min() max() in M5STack.h
 //        to fix this, #undef MUST be written after M5Stack.h include !!!!!!!!!!!!!!!!!
@@ -195,31 +184,6 @@ Error MB_ERROR6;
 uint32_t MB_Errors = 0;
 uint32_t MB_Requests = 0;
 
-void indexCmd(Request &req, Response &res)
-{
-
-  // P macro for printing strings from program memory
-  P(index) =
-      "<html>\n"
-      "<head>\n"
-      "<title>Hello World!</title>\n"
-      "</head>\n"
-      "<body>\n"
-      "<h1>Greetings middle earth!</h1>\n"
-      "</body>\n"
-      "</html>";
-
-  res.set("Content-Type", "text/html");
-  res.printP(index);
-
-  Serial.println("Mem after settings:");
-  Serial.printf("MinFreeHeap %d, MaxAllocHeap %d\n", ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
-  Serial.printf("Internal Total heap %d, internal Free Heap %d\n", ESP.getHeapSize(), ESP.getFreeHeap());
-  Serial.printf("HiWaterMark: %d bytes | Idle: %d bytes\n",
-                uxTaskGetStackHighWaterMark(0),
-                uxTaskGetStackHighWaterMark(xTaskGetIdleTaskHandle()));
-}
-
 void getValues(ModbusMessage response, uint16_t values[], uint16_t numVal)
 {
   // First value is on pos 3, after server ID, function code and length byte
@@ -284,9 +248,6 @@ void setup()
   M5.begin();
   Serial.begin(115200);
 
-  SPI.begin(SCK, MISO, MOSI, -1);
-  Ethernet.init(CS);
-
   // Set up Serial2 connected to Modbus RTU
   Serial2.begin(BAUDRATE, SERIAL_8N1);
 
@@ -314,25 +275,6 @@ void setup()
   MB.begin();
 
   M5.Lcd.setTextSize(2);
-
-  if (Ethernet.begin(mac))
-  {
-    Serial.println(Ethernet.localIP());
-  }
-  else
-  {
-    Serial.println("Ethernet failed ");
-  }
-
-  // mount the handler to the default router
-  app.get("/", &indexCmd);
-
-  Serial.println("Mem after settings:");
-  Serial.printf("MinFreeHeap %d, MaxAllocHeap %d\n", ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
-  Serial.printf("Internal Total heap %d, internal Free Heap %d\n", ESP.getHeapSize(), ESP.getFreeHeap());
-  Serial.printf("HiWaterMark: %d bytes | Idle: %d bytes\n",
-                uxTaskGetStackHighWaterMark(0),
-                uxTaskGetStackHighWaterMark(xTaskGetIdleTaskHandle()));
 }
 
 void printRequests()
@@ -521,15 +463,15 @@ void NonBlockingStateMachine()
   case READ_SENSOR_4:
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_4, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
-    /*
-        MB_Requests++; // TEST DEBUG
-        MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
-        if (MB_ERROR4 != SUCCESS)
-        {
-          ModbusError e(MB_ERROR4);
-          LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
-        }
-    */
+/*
+    MB_Requests++; // TEST DEBUG
+    MB_ERROR4 = MB.addRequest(SERVER4_TOKEN, SERVER4_ID, READ_INPUT_REGISTER, SERVER4_INPUT_REGISTER, SERVER4_NUM_VALUES);
+    if (MB_ERROR4 != SUCCESS)
+    {
+      ModbusError e(MB_ERROR4);
+      LOG_E("Error creating request3: %02X - %s\n", (int)e, (const char *)e);
+    }
+*/
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_4;
     STATE_NR++;
     break;
@@ -537,15 +479,15 @@ void NonBlockingStateMachine()
   case READ_SENSOR_5:
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_5, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
-    /*
-        MB_Requests++; // TEST DEBUG
-        MB_ERROR5 = MB.addRequest(SERVER5_TOKEN, SERVER5_ID, READ_HOLD_REGISTER, SERVER5_HOLD_REGISTER, SERVER5_NUM_VALUES);
-        if (MB_ERROR5 != SUCCESS)
-        {
-          ModbusError e(MB_ERROR5);
-          LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
-        }
-    */
+/*
+    MB_Requests++; // TEST DEBUG
+    MB_ERROR5 = MB.addRequest(SERVER5_TOKEN, SERVER5_ID, READ_HOLD_REGISTER, SERVER5_HOLD_REGISTER, SERVER5_NUM_VALUES);
+    if (MB_ERROR5 != SUCCESS)
+    {
+      ModbusError e(MB_ERROR5);
+      LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
+    }
+*/
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_5;
     STATE_NR++;
     break;
@@ -553,15 +495,15 @@ void NonBlockingStateMachine()
   case READ_SENSOR_6:
     Serial.printf("StateNo:%2i delay: %lu\n", READ_SENSOR_6, millis() - STATE_START_DELAY);
     STATE_START_DELAY = millis();
-    /*
-        MB_Requests++; // TEST DEBUG
-        MB_ERROR6 = MB.addRequest(SERVER6_TOKEN, SERVER6_ID, READ_HOLD_REGISTER, SERVER6_HOLD_REGISTER, SERVER6_NUM_VALUES);
-        if (MB_ERROR6 != SUCCESS)
-        {
-          ModbusError e(MB_ERROR6);
-          LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
-        }
-    */
+/*
+    MB_Requests++; // TEST DEBUG
+    MB_ERROR6 = MB.addRequest(SERVER6_TOKEN, SERVER6_ID, READ_HOLD_REGISTER, SERVER6_HOLD_REGISTER, SERVER6_NUM_VALUES);
+    if (MB_ERROR6 != SUCCESS)
+    {
+      ModbusError e(MB_ERROR6);
+      LOG_E("Error creating request2: %02X - %s\n", (int)e, (const char *)e);
+    }
+*/
     STATE_WAIT_DELAY = DELAY_AFTER_STATE_6;
     STATE_NR++;
     break;
@@ -602,10 +544,4 @@ void loop()
 {
   M5.update();
   NonBlockingStateMachine();
-  EthernetClient client = server.available();
-  if (client.connected())
-  {
-    app.process(&client);
-    client.stop();
-  }
 }
